@@ -9,6 +9,7 @@ var (
 	Version   = "dev"
 	GitCommit = "unknown"
 	BuildTime = "unknown"
+	Release   = "false" // "true" suppresses debug headers (set via ldflags)
 )
 
 // Centralized version/image constants. To upgrade the cluster, change these

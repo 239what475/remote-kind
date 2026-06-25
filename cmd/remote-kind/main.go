@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"net"
@@ -40,6 +41,10 @@ var targetWorkers int
 
 func main() {
 	klog.InitFlags(nil)
+	if cluster.Release == "true" {
+		flag.CommandLine.Set("skip_headers", "true")
+	}
+	flag.Parse()
 
 	root := &cobra.Command{
 		Use:           "remote-kind",
