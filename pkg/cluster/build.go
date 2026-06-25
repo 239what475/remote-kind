@@ -54,21 +54,7 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 	if err != nil {
 		return fmt.Errorf("sg: %w", err)
 	}
-	defer func() {
-		if err := client.DeleteSecurityGroup(sgID); err != nil {
-			klog.Warningf("cleanup SG: %v", err)
-		}
-		// Retry vSwitch deletion — ENI may not be released yet
-		for range 5 {
-			time.Sleep(5 * time.Second)
-			if err := client.DeleteVSwitch(vswID); err == nil {
-				break
-			}
-		}
-		if err := client.DeleteVpc(vpcID); err != nil {
-			klog.Warningf("cleanup VPC: %v", err)
-		}
-	}()
+
 	if err := client.AuthorizeSecurityGroupIngress(sgID, "-1/-1", DefaultVpcCIDR, "ALL"); err != nil {
 		return fmt.Errorf("sg rule vpc: %w", err)
 	}
@@ -108,6 +94,25 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 	}
 	ecsID := resp.InstanceIDs[0]
 	fmt.Println(ecsID)
+	defer func() {
+		cleanCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		if err := client.WaitUntilTerminated(cleanCtx, []string{ecsID}); err != nil {
+			klog.Warningf("cleanup wait ECS: %v", err)
+		}
+		if err := client.DeleteSecurityGroup(sgID); err != nil {
+			klog.Warningf("cleanup SG: %v", err)
+		}
+		for range 5 {
+			time.Sleep(5 * time.Second)
+			if err := client.DeleteVSwitch(vswID); err == nil {
+				break
+			}
+		}
+		if err := client.DeleteVpc(vpcID); err != nil {
+			klog.Warningf("cleanup VPC: %v", err)
+		}
+	}()
 
 	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
