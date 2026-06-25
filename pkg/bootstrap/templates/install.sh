@@ -31,6 +31,7 @@ yum install -y kubelet kubeadm kubectl crictl containernetworking-plugins
 systemctl enable containerd kubelet
 
 # ACK4 installs CNI plugins to /usr/libexec/cni, but kubelet expects /opt/cni/bin
+mkdir -p /opt/cni/bin
 cp /usr/libexec/cni/* /opt/cni/bin/
 
 kubeadm config images pull --image-repository=registry.k8s.io --kubernetes-version={{ .K8sVersion }}
