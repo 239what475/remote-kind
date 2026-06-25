@@ -58,10 +58,13 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 		if err := client.DeleteSecurityGroup(sgID); err != nil {
 			klog.Warningf("cleanup SG: %v", err)
 		}
-		if err := client.DeleteVSwitch(vswID); err != nil {
-			klog.Warningf("cleanup vSwitch: %v", err)
+		// Retry vSwitch deletion — ENI may not be released yet
+		for range 5 {
+			time.Sleep(5 * time.Second)
+			if err := client.DeleteVSwitch(vswID); err == nil {
+				break
+			}
 		}
-		time.Sleep(3 * time.Second)
 		if err := client.DeleteVpc(vpcID); err != nil {
 			klog.Warningf("cleanup VPC: %v", err)
 		}
