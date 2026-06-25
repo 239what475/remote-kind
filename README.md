@@ -5,7 +5,7 @@ Kubernetes clusters on Alibaba Cloud ECS — like kind, but with real VMs.
 ## Install
 
 ```bash
-go install github.com/239what475/remote-kind/cmd/remote-kind@latest
+https://github.com/239what475/remote-kind/releases
 ```
 
 ## Quick Start
