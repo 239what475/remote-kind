@@ -85,6 +85,7 @@ func scaleUp(ctx context.Context, client *aliyun.Client, name string, count int,
 
 	resp, err := client.RunInstances(&aliyun.RunInstanceInput{
 		InstanceName:     fmt.Sprintf("%s-w", name),
+		HostName:        fmt.Sprintf("%s-w", name),
 		InstanceType:     workerSpec.InstanceType,
 		ImageID:          imageID,
 		VSwitchID:        vswitchID,

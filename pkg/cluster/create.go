@@ -157,7 +157,7 @@ func (c *ClusterState) Create(ctx context.Context, client *aliyun.Client) error 
 
 	go func() {
 		resp, cpErr := client.RunInstances(&aliyun.RunInstanceInput{
-			InstanceName: fmt.Sprintf("%s-cp", cfg.Name), InstanceType: cfg.Spec.ControlPlane.InstanceType,
+			InstanceName: fmt.Sprintf("%s-cp", cfg.Name), HostName: fmt.Sprintf("%s-cp", cfg.Name), InstanceType: cfg.Spec.ControlPlane.InstanceType,
 			ImageID: imageID, VSwitchID: res.vswitchID, SecurityGroupID: res.sgID,
 			UserData: cpCI, SystemDiskSizeGB: DefaultSystemDiskSize,
 			AssignPublicIP: true, InstanceCount: 1,
@@ -231,7 +231,7 @@ func (c *ClusterState) Create(ctx context.Context, client *aliyun.Client) error 
 
 	go func() {
 		resp, wErr := client.RunInstances(&aliyun.RunInstanceInput{
-			InstanceName: fmt.Sprintf("%s-w", cfg.Name), InstanceType: workerSpec.InstanceType,
+			InstanceName: fmt.Sprintf("%s-w", cfg.Name), HostName: fmt.Sprintf("%s-w", cfg.Name), InstanceType: workerSpec.InstanceType,
 			ImageID: imageID, VSwitchID: res.vswitchID, SecurityGroupID: res.sgID,
 			UserData: wCI, SystemDiskSizeGB: DefaultSystemDiskSize,
 			AssignPublicIP: true, InstanceCount: workerSpec.Replicas,

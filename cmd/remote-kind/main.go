@@ -441,6 +441,8 @@ func versionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "version", Short: "Print version",
 		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Fprintf(cmd.OutOrStdout(), "remote-kind %s (%s) built %s\n",
+				cluster.Version, cluster.GitCommit, cluster.BuildTime)
 		},
 	}
 }

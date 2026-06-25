@@ -70,6 +70,7 @@ func (c *Client) AuthorizeSecurityGroupEgress(sgID, portRange, destCIDR, protoco
 // RunInstanceInput holds parameters for creating ECS instances.
 type RunInstanceInput struct {
 	InstanceName     string
+	HostName         string // OS hostname (default: instance ID)
 	InstanceType     string
 	ImageID          string // empty = Alibaba Cloud Linux 4 container optimized
 	VSwitchID        string
@@ -90,6 +91,7 @@ func (c *Client) RunInstances(in *RunInstanceInput) (*RunInstanceOutput, error) 
 	req := new(ecs.RunInstancesRequest)
 	req.SetRegionId(c.Region)
 	req.SetInstanceName(in.InstanceName)
+	req.SetHostName(in.HostName)
 	req.SetInstanceType(in.InstanceType)
 	req.SetVSwitchId(in.VSwitchID)
 	req.SetSecurityGroupId(in.SecurityGroupID)
