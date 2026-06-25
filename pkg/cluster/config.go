@@ -3,7 +3,6 @@ package cluster
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -54,8 +53,8 @@ spec:
 
 // LoadConfig reads and parses a remote-kind.yaml file, applying defaults.
 func LoadConfig(path string) (*ClusterConfig, error) {
-	if !filepath.IsLocal(path) {
-		return nil, fmt.Errorf("config path not local: %s", path)
+	if strings.Contains(path, "..") {
+		return nil, fmt.Errorf("config path must not contain '..': %s", path)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -91,8 +90,8 @@ func (c *ClusterConfig) ReadSSHKey() (string, error) {
 		}
 		path = home + path[1:]
 	}
-	if !filepath.IsLocal(path) {
-		return "", fmt.Errorf("ssh key path not local: %s", path)
+	if strings.Contains(path, "..") {
+		return "", fmt.Errorf("ssh key path must not contain '..': %s", path)
 	}
 	keyBytes, err := os.ReadFile(path)
 	if err != nil {

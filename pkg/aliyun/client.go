@@ -78,9 +78,6 @@ func readAliyunCLIConfig() (ak, sk, region string) {
 		return "", "", ""
 	}
 	configPath := filepath.Join(home, ".aliyun", "config.json")
-	if !filepath.IsLocal(configPath) {
-		return
-	}
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return

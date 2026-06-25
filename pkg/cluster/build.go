@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -32,7 +31,8 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 		}
 	}
 
-	k8sMinor := strings.TrimSuffix(strings.TrimPrefix(K8sVersion, "v"), ".0")
+	lastDot := strings.LastIndex(K8sVersion, ".")
+	k8sMinor := K8sVersion[:lastDot] // v1.36.2 → v1.36
 	name := fmt.Sprintf("rk-build-%d", time.Now().Unix())
 	mode := "build"
 	if testMode {
@@ -47,11 +47,6 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 	if err != nil {
 		return fmt.Errorf("vpc: %w", err)
 	}
-	defer func() {
-		if err := client.DeleteVpc(vpcID); err != nil {
-			klog.Warningf("cleanup VPC: %v", err)
-		}
-	}()
 	vswID, err := client.CreateVSwitch(name, vpcID, cfg.Spec.Zone, DefaultVSwitchCIDR)
 	if err != nil {
 		return fmt.Errorf("vswitch: %w", err)
@@ -60,6 +55,18 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 	if err != nil {
 		return fmt.Errorf("sg: %w", err)
 	}
+	defer func() {
+		if err := client.DeleteSecurityGroup(sgID); err != nil {
+			klog.Warningf("cleanup SG: %v", err)
+		}
+		if err := client.DeleteVSwitch(vswID); err != nil {
+			klog.Warningf("cleanup vSwitch: %v", err)
+		}
+		time.Sleep(3 * time.Second)
+		if err := client.DeleteVpc(vpcID); err != nil {
+			klog.Warningf("cleanup VPC: %v", err)
+		}
+	}()
 	if err := client.AuthorizeSecurityGroupIngress(sgID, "-1/-1", DefaultVpcCIDR, "ALL"); err != nil {
 		return fmt.Errorf("sg rule vpc: %w", err)
 	}
@@ -82,8 +89,8 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 			}
 			path = home + path[1:]
 		}
-		if !filepath.IsLocal(path) {
-			return fmt.Errorf("ssh key path not local: %s", path)
+		if strings.Contains(path, "..") {
+			return fmt.Errorf("ssh key path must not contain ..: %s", path)
 		}
 		keyBytes, err := os.ReadFile(path)
 		if err != nil {
