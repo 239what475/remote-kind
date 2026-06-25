@@ -33,8 +33,8 @@ ACK CLI 创建需要 15+ 个 JSON 字段，耗时 4-15 分钟。专有集群 202
 |------|------|------|
 | 语言 | **Go** | 单二进制分发 |
 | 集群引导 | **kubeadm** | kind 同款，社区标准 |
-| 命令执行 | **Cloud Assistant (RunCommand)** | 不需要 SSH，不需要公网 IP 打通网络 |
-| 节点访问 | **SSH 密钥注入**（cloud-init） | 仅用于调试 |
+| 命令执行 | **Cloud Assistant (RunCommand)** | bootstrap 走内部通道，SSH 仅用于用户调试 |
+| 节点访问 | **SSH 密钥注入**（cloud-init） | 仅用于调试，非 bootstrap 通道 |
 | 镜像构建 | **Cloud Assistant + CreateImage** | 不用 Packer，复用已有 aliyun SDK 层 |
 | API 入口 | **CP 公网 IP + cert SAN** | 简单直接，不需要 NLB |
 | 基础设施管理 | **不引入 Terraform** | 无状态启动器，标签驱动资源发现 |
