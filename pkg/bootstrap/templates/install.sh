@@ -26,8 +26,6 @@ baseurl=https://pkgs.k8s.io/core:/stable:/{{ .K8sMinor }}/rpm/
 enabled=1
 gpgcheck=0
 REPO
-# Preserve hostname from ECS API (not overwritten by Alibaba agent)
-sed -i 's/^#preserve_hostname: false/preserve_hostname: true/' /etc/cloud/cloud.cfg
 
 yum install -y kubelet kubeadm kubectl crictl containernetworking-plugins
 systemctl enable containerd kubelet
