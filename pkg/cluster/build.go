@@ -184,7 +184,16 @@ kubeadm token create --print-join-command
 	}
 
 	// ── CreateImage ──
-	fmt.Println("\nCreating image...")
+	fmt.Println("\nStopping instance for snapshot...")
+	if err := client.StopInstance(ecsID); err != nil {
+		return fmt.Errorf("stop instance: %w", err)
+	}
+	stopCtx, stopCancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer stopCancel()
+	if err := client.WaitUntilStopped(stopCtx, ecsID); err != nil {
+		return fmt.Errorf("wait stopped: %w", err)
+	}
+	fmt.Print("Creating image... ")
 	imageID, err := client.CreateImage(ecsID, ImageName)
 	if err != nil {
 		return fmt.Errorf("create image: %w", err)

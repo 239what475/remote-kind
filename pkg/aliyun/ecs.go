@@ -427,6 +427,44 @@ func (c *Client) ListSGsByVPC(vpcID string) ([]string, error) {
 	return ids, nil
 }
 
+// StopInstance stops a running ECS instance.
+func (c *Client) StopInstance(instanceID string) error {
+	req := new(ecs.StopInstanceRequest)
+	req.SetInstanceId(instanceID)
+	_, err := c.ECS.StopInstance(req)
+	if err != nil {
+		return fmt.Errorf("stop instance %s: %w", instanceID, err)
+	}
+	return nil
+}
+
+// WaitUntilStopped polls until the instance reaches Stopped state.
+func (c *Client) WaitUntilStopped(ctx context.Context, instanceID string) error {
+	idsJSON, err := json.Marshal([]string{instanceID})
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
+	req := new(ecs.DescribeInstancesRequest)
+	req.SetRegionId(c.Region)
+	req.SetInstanceIds(string(idsJSON))
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+		}
+		resp, err := c.ECS.DescribeInstances(req)
+		if err != nil {
+			continue
+		}
+		for _, inst := range resp.Body.Instances.Instance {
+			if inst.Status != nil && *inst.Status == "Stopped" {
+				return nil
+			}
+		}
+	}
+}
+
 // WaitUntilTerminated polls until all given instances are fully deleted.
 func (c *Client) WaitUntilTerminated(ctx context.Context, instanceIDs []string) error {
 	idsJSON, err := json.Marshal(instanceIDs)
