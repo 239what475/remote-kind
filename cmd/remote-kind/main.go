@@ -44,8 +44,6 @@ func main() {
 	if cluster.Release == "true" {
 		flag.CommandLine.Set("skip_headers", "true")
 	}
-	flag.Parse()
-
 	root := &cobra.Command{
 		Use:           "remote-kind",
 		Short:         "Kubernetes clusters on Alibaba Cloud",
