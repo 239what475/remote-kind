@@ -191,7 +191,7 @@ kubeadm token create --print-join-command
 	}
 	fmt.Printf("Image ID: %s (name: %s)\n", imageID, ImageName)
 	fmt.Print("Waiting for image... ")
-	imgCtx, cancel4 := context.WithTimeout(ctx, 15*time.Minute)
+	imgCtx, cancel4 := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel4()
 	if err := client.WaitForImage(imgCtx, imageID); err != nil {
 		return fmt.Errorf("wait for image: %w", err)
