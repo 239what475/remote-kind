@@ -7,7 +7,7 @@ package cluster
 //	                   -X ...BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 //	                   -X ...Release=true"
 var (
-	Version   = "v0.1.0"
+	Version   = "v0.1.1"
 	GitCommit = "unknown"
 	BuildTime = "unknown"
 	Release   = "false" // "true" = clean user-facing output
