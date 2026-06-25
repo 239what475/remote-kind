@@ -1,0 +1,14 @@
+# User cluster config (contains personal settings like image mirrors, region preferences)
+remote-kind.yaml
+
+# Build artifacts
+/remote-kind
+/build-image
+/test-cluster
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+/test-ecs

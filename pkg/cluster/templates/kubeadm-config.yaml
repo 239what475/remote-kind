@@ -1,0 +1,14 @@
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+kubernetesVersion: {{.KubernetesVersion}}
+imageRepository: {{.ImageRepository}}
+apiServer:
+  certSANs:
+  - {{.CertPubIP}}
+networking:
+  podSubnet: {{.PodSubnet}}
+  serviceSubnet: {{.ServiceSubnet}}
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+failCgroupV1: false
