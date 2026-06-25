@@ -1,15 +1,16 @@
 package cluster
 
-// Build-time variables set via ldflags:
+// Version is the source of truth — update on each release.
+// GitCommit, BuildTime, and Release are injected via ldflags at build time:
 //
-//	go build -ldflags "-X github.com/239what475/remote-kind/pkg/cluster.Version=v0.1.0
-//	                   -X github.com/239what475/remote-kind/pkg/cluster.GitCommit=$(git rev-parse --short HEAD)
-//	                   -X github.com/239what475/remote-kind/pkg/cluster.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+//	go build -ldflags "-X ...GitCommit=$(git rev-parse --short HEAD)
+//	                   -X ...BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+//	                   -X ...Release=true"
 var (
-	Version   = "dev"
+	Version   = "v0.1.0"
 	GitCommit = "unknown"
 	BuildTime = "unknown"
-	Release   = "false" // "true" suppresses debug headers (set via ldflags)
+	Release   = "false" // "true" = clean user-facing output
 )
 
 // Centralized version/image constants. To upgrade the cluster, change these
