@@ -66,7 +66,7 @@ func ScaleWorkers(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig
 	if target > current {
 		// Scale up: create + join new workers
 		add := target - current
-		return scaleUp(ctx, client, name, add, imageID, vswitchID, sgID, workerSpec)
+		return scaleUp(ctx, client, name, current, add, imageID, vswitchID, sgID, workerSpec)
 	}
 
 	// Scale down: delete excess workers
@@ -75,7 +75,7 @@ func ScaleWorkers(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig
 	return scaleDown(ctx, client, cpID, workerIDs, remove)
 }
 
-func scaleUp(ctx context.Context, client *aliyun.Client, name string, count int, imageID, vswitchID, sgID string, workerSpec WorkerSpec) error {
+func scaleUp(ctx context.Context, client *aliyun.Client, name string, startIdx, count int, imageID, vswitchID, sgID string, workerSpec WorkerSpec) error {
 	klog.Infof("Adding %d workers...", count)
 
 	ci, err := bootstrap.GenerateCloudInit(&bootstrap.CloudInitData{Hostname: fmt.Sprintf("%s-w", name)})
@@ -85,7 +85,7 @@ func scaleUp(ctx context.Context, client *aliyun.Client, name string, count int,
 
 	resp, err := client.RunInstances(&aliyun.RunInstanceInput{
 		InstanceName:     fmt.Sprintf("%s-w", name),
-		HostName:        fmt.Sprintf("%s-w", name),
+		HostName:        fmt.Sprintf("%s-w-[%d,%d]", name, startIdx, startIdx+count-1),
 		InstanceType:     workerSpec.InstanceType,
 		ImageID:          imageID,
 		VSwitchID:        vswitchID,

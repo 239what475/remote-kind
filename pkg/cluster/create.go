@@ -130,7 +130,7 @@ func (c *ClusterState) Create(ctx context.Context, client *aliyun.Client) error 
 		return fmt.Errorf("cp cloud-init: %w", err)
 	}
 	workerSpec := cfg.Spec.Workers[0]
-	wCI, err := bootstrap.GenerateCloudInit(&bootstrap.CloudInitData{Hostname: fmt.Sprintf("%s-w", cfg.Name), SSHKey: sshKey})
+	wCI, err := bootstrap.GenerateCloudInit(&bootstrap.CloudInitData{SSHKey: sshKey})
 	if err != nil {
 		return fmt.Errorf("worker cloud-init: %w", err)
 	}
@@ -230,18 +230,23 @@ func (c *ClusterState) Create(ctx context.Context, client *aliyun.Client) error 
 	}()
 
 	go func() {
-		resp, wErr := client.RunInstances(&aliyun.RunInstanceInput{
-			InstanceName: fmt.Sprintf("%s-w", cfg.Name), HostName: fmt.Sprintf("%s-w", cfg.Name), InstanceType: workerSpec.InstanceType,
-			ImageID: imageID, VSwitchID: res.vswitchID, SecurityGroupID: res.sgID,
-			UserData: wCI, SystemDiskSizeGB: DefaultSystemDiskSize,
-			AssignPublicIP: true, InstanceCount: workerSpec.Replicas,
-			Tags: map[string]string{aliyun.TagCluster: cfg.Name, aliyun.TagRole: aliyun.RoleWorker},
-		})
-		if wErr != nil {
-			wCh <- wResult{err: fmt.Errorf("workers: %w", wErr)}
-			return
+		var ids []string
+		var wErr error
+		var resp *aliyun.RunInstanceOutput
+		for i := range workerSpec.Replicas {
+			resp, wErr = client.RunInstances(&aliyun.RunInstanceInput{
+				InstanceName: fmt.Sprintf("%s-w", cfg.Name), HostName: fmt.Sprintf("%s-w-%d", cfg.Name, i), InstanceType: workerSpec.InstanceType,
+				ImageID: imageID, VSwitchID: res.vswitchID, SecurityGroupID: res.sgID,
+				UserData: wCI, SystemDiskSizeGB: DefaultSystemDiskSize,
+				AssignPublicIP: true, InstanceCount: 1,
+				Tags: map[string]string{aliyun.TagCluster: cfg.Name, aliyun.TagRole: aliyun.RoleWorker},
+			})
+			if wErr != nil {
+				wCh <- wResult{err: fmt.Errorf("worker %d: %w", i, wErr)}
+				return
+			}
+			ids = append(ids, resp.InstanceIDs...)
 		}
-		ids := resp.InstanceIDs
 		klog.Infof("Workers created: %d", len(ids))
 
 		wCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
