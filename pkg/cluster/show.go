@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/klog/v2"
+
 	"github.com/what/remote-kind/pkg/aliyun"
 )
 
@@ -71,7 +73,11 @@ func ShowCluster(ctx context.Context, client *aliyun.Client, name string) error 
 	// VPC info: lookup by VPC name pattern using tag-based instance discovery
 	// We don't have VPC ID in NodeInfo, so we use the naming convention.
 	vpcName := fmt.Sprintf("remote-kind-%s", name)
-	vpcs, _ := client.ListVPCsByName(vpcName)
+	vpcs, err := client.ListVPCsByName(vpcName)
+	if err != nil {
+		klog.Warningf("list VPCs: %v", err)
+		return nil
+	}
 	if len(vpcs) > 0 {
 		fmt.Println()
 		fmt.Printf("VPC:        %s (%s)\n", vpcs[0], vpcName)

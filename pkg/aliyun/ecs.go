@@ -156,7 +156,10 @@ func (c *Client) RunInstances(in *RunInstanceInput) (*RunInstanceOutput, error) 
 
 // WaitUntilRunning polls DescribeInstances until all given instances reach "Running".
 func (c *Client) WaitUntilRunning(ctx context.Context, instanceIDs []string) error {
-	idsJSON, _ := json.Marshal(instanceIDs)
+	idsJSON, err := json.Marshal(instanceIDs)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
 	req := new(ecs.DescribeInstancesRequest)
 	req.SetRegionId(c.Region)
 	req.SetInstanceIds(string(idsJSON))
@@ -205,7 +208,10 @@ func (c *Client) findLatestImage(family string) (string, error) {
 
 // GetInstancePrivateIP returns the first private IP address of an instance.
 func (c *Client) GetInstancePrivateIP(instanceID string) (string, error) {
-	idsJSON, _ := json.Marshal([]string{instanceID})
+	idsJSON, err := json.Marshal([]string{instanceID})
+	if err != nil {
+		return "", fmt.Errorf("marshal: %w", err)
+	}
 	req := new(ecs.DescribeInstancesRequest)
 	req.SetRegionId(c.Region)
 	req.SetInstanceIds(string(idsJSON))
@@ -241,7 +247,10 @@ type InstanceInfo struct {
 
 // GetInstanceInfo queries specific instances by ID.
 func (c *Client) GetInstanceInfo(instanceIDs []string) ([]InstanceInfo, error) {
-	idsJSON, _ := json.Marshal(instanceIDs)
+	idsJSON, err := json.Marshal(instanceIDs)
+	if err != nil {
+		return nil, fmt.Errorf("marshal: %w", err)
+	}
 	req := new(ecs.DescribeInstancesRequest)
 	req.SetRegionId(c.Region)
 	req.SetInstanceIds(string(idsJSON))
@@ -379,7 +388,10 @@ func (c *Client) WaitForImage(ctx context.Context, imageID string) error {
 
 // GetInstancePublicIP returns the first public IP of an instance.
 func (c *Client) GetInstancePublicIP(instanceID string) (string, error) {
-	idsJSON, _ := json.Marshal([]string{instanceID})
+	idsJSON, err := json.Marshal([]string{instanceID})
+	if err != nil {
+		return "", fmt.Errorf("marshal: %w", err)
+	}
 	req := new(ecs.DescribeInstancesRequest)
 	req.SetRegionId(c.Region)
 	req.SetInstanceIds(string(idsJSON))
@@ -415,7 +427,10 @@ func (c *Client) ListSGsByVPC(vpcID string) ([]string, error) {
 
 // WaitUntilTerminated polls until all given instances are fully deleted.
 func (c *Client) WaitUntilTerminated(ctx context.Context, instanceIDs []string) error {
-	idsJSON, _ := json.Marshal(instanceIDs)
+	idsJSON, err := json.Marshal(instanceIDs)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
 	req := new(ecs.DescribeInstancesRequest)
 	req.SetRegionId(c.Region)
 	req.SetInstanceIds(string(idsJSON))

@@ -176,25 +176,32 @@ func (c *ClusterState) Create(ctx context.Context, client *aliyun.Client) error 
 			cpCh <- cpResult{err: fmt.Errorf("wait cp: %w", cpErr)}
 			return
 		}
-		cpPubIP, _ := client.GetInstancePublicIP(cpID)
+		cpPubIP, err := client.GetInstancePublicIP(cpID)
+		if err != nil {
+			cpCh <- cpResult{err: fmt.Errorf("cp public IP: %w", err)}
+			return
+		}
 		if cpErr = client.WaitForCloudAssistant(cpCtx, []string{cpID}); cpErr != nil {
 			cpCh <- cpResult{err: fmt.Errorf("wait ca: %w", cpErr)}
 			return
 		}
-		func() {
-			ciCtx, cancel := context.WithTimeout(cpCtx, 3*time.Minute)
-			defer cancel()
-			client.WaitForCloudInit(ciCtx, cpID)
-		}()
-		cpIP, _ := client.GetInstancePrivateIP(cpID)
+		client.WaitForCloudInitTimeout(cpCtx, cpID, 3*time.Minute)
+		cpIP, err := client.GetInstancePrivateIP(cpID)
+		if err != nil {
+			cpCh <- cpResult{err: fmt.Errorf("cp private IP: %w", err)}
+			return
+		}
 		klog.Infof("CP ready: %s", cpIP)
 
 		var kc bytes.Buffer
-		_ = kubeadmTmpl.Execute(&kc, map[string]string{ // err impossible on bytes.Buffer
+		if err := kubeadmTmpl.Execute(&kc, map[string]string{
 			"KubernetesVersion": K8sVersion, "ImageRepository": "registry.k8s.io",
 			"PodSubnet": cfg.Spec.Networking.PodSubnet, "ServiceSubnet": cfg.Spec.Networking.ServiceSubnet,
 			"CertPubIP": cpPubIP,
-		})
+		}); err != nil {
+			cpCh <- cpResult{err: fmt.Errorf("kubeadm template: %w", err)}
+			return
+		}
 		initScript, err := bootstrap.RenderInitScript(&bootstrap.InitScriptData{KubeadmConfig: kc.String()})
 		if err != nil {
 			cpCh <- cpResult{err: fmt.Errorf("init script: %w", err)}
@@ -248,11 +255,7 @@ func (c *ClusterState) Create(ctx context.Context, client *aliyun.Client) error 
 			return
 		}
 		for _, wid := range ids {
-			func() {
-				ciCtx, cancel := context.WithTimeout(wCtx, 2*time.Minute)
-				defer cancel()
-				client.WaitForCloudInit(ciCtx, wid)
-			}()
+			client.WaitForCloudInitTimeout(wCtx, wid, 2*time.Minute)
 		}
 		klog.Infof("Workers ready: %d", len(ids))
 		wCh <- wResult{ids: ids}

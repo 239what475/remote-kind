@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -17,6 +18,20 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/v2"
 )
+
+// fprint is fmt.Fprintf that logs write errors instead of discarding them.
+func fprint(w io.Writer, format string, args ...any) {
+	if _, err := fmt.Fprintf(w, format, args...); err != nil {
+		klog.Warningf("console write: %v", err)
+	}
+}
+
+// fprintln is fmt.Fprintln that logs write errors instead of discarding them.
+func fprintln(w io.Writer, args ...any) {
+	if _, err := fmt.Fprintln(w, args...); err != nil {
+		klog.Warningf("console write: %v", err)
+	}
+}
 
 var configPath string
 var clusterName string
@@ -107,12 +122,12 @@ func createCmd() *cobra.Command {
 			// Merge kubeconfig
 			kcPath := os.ExpandEnv("$HOME/.kube/config")
 			if err := os.MkdirAll(os.ExpandEnv("$HOME/.kube"), 0700); err != nil {
-				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "kubeconfig dir: %v\n", err)
+				fprint(cmd.ErrOrStderr(), "kubeconfig dir: %v\n", err)
 			}
 			if err := mergeKubeconfig(kcPath, cfg.Name, []byte(state.Kubeconfig), state.ControlPlanePubIP); err != nil {
-				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "kubeconfig merge failed: %v\n", err)
+				fprint(cmd.ErrOrStderr(), "kubeconfig merge failed: %v\n", err)
 			} else {
-				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "kubeconfig merged (context: kind-%s)\n", cfg.Name)
+				fprint(cmd.ErrOrStderr(), "kubeconfig merged (context: kind-%s)\n", cfg.Name)
 			}
 
 			// Install CNI
@@ -122,31 +137,31 @@ func createCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("read flannel yaml: %w", err)
 				}
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Installing Flannel CNI...")
+				fprintln(cmd.ErrOrStderr(), "Installing Flannel CNI...")
 				cniCmd := exec.Command("kubectl", "apply", "-f", "-", "--validate=false")
 				cniCmd.Stdin = bytes.NewReader(yamlData)
 				cniCmd.Stdout = cmd.OutOrStdout()
 				cniCmd.Stderr = cmd.ErrOrStderr()
 				if err := cniCmd.Run(); err != nil {
-					_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "CNI install failed: %v\n", err)
+					fprint(cmd.ErrOrStderr(), "CNI install failed: %v\n", err)
 				}
 			}
 
 			if wait {
-				_, _ = fmt.Fprint(cmd.ErrOrStderr(), "Waiting for nodes to be Ready...")
+				fprint(cmd.ErrOrStderr(), "Waiting for nodes to be Ready...")
 				waitCmd := exec.Command("kubectl", "wait", "--for=condition=Ready", "nodes", "--all", "--timeout=5m")
 				waitCmd.Stdout = cmd.OutOrStdout()
 				waitCmd.Stderr = cmd.ErrOrStderr()
 				if err := waitCmd.Run(); err != nil {
-					_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "\nWarning: some nodes not ready: %v\n", err)
+					fprint(cmd.ErrOrStderr(), "\nWarning: some nodes not ready: %v\n", err)
 				}
 			}
 
-			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "\nCluster %q ready in %s\n", cfg.Name, time.Since(start).Round(time.Second))
+			fprint(cmd.OutOrStdout(), "\nCluster %q ready in %s\n", cfg.Name, time.Since(start).Round(time.Second))
 			if state.ControlPlanePubIP != "" {
-				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  ssh root@%s\n", state.ControlPlanePubIP)
+				fprint(cmd.OutOrStdout(), "  ssh root@%s\n", state.ControlPlanePubIP)
 			}
-			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  kubectl --context kind-%s get nodes\n", cfg.Name)
+			fprint(cmd.OutOrStdout(), "  kubectl --context kind-%s get nodes\n", cfg.Name)
 			return nil
 		},
 	}
@@ -202,7 +217,9 @@ func scaleCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&configPath, "config", "remote-kind.yaml", "Path to config file")
 	cmd.Flags().IntVar(&targetWorkers, "workers", 0, "Target number of worker nodes")
-	_ = cmd.MarkFlagRequired("workers")
+	if err := cmd.MarkFlagRequired("workers"); err != nil {
+		klog.Warningf("mark flag: %v", err)
+	}
 	return cmd
 }
 
@@ -265,13 +282,13 @@ func getClustersCmd() *cobra.Command {
 				return err
 			}
 			if len(clusters) == 0 {
-				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "No clusters found")
+				fprintln(cmd.OutOrStdout(), "No clusters found")
 				return nil
 			}
 			out := cmd.OutOrStdout()
-			_, _ = fmt.Fprintf(out, "%-16s %-12s %-18s %s\n", "NAME", "REGION", "CP_IP", "NODES")
+			fprint(out, "%-16s %-12s %-18s %s\n", "NAME", "REGION", "CP_IP", "NODES")
 			for _, cl := range clusters {
-				_, _ = fmt.Fprintf(out, "%-16s %-12s %-18s %d\n", cl.Name, cl.Region, cl.CPIP, cl.NodeCount)
+				fprint(out, "%-16s %-12s %-18s %d\n", cl.Name, cl.Region, cl.CPIP, cl.NodeCount)
 			}
 			return nil
 		},
@@ -292,9 +309,9 @@ func getNodesCmd() *cobra.Command {
 				return err
 			}
 			out := cmd.OutOrStdout()
-			_, _ = fmt.Fprintf(out, "%-24s %-16s %-14s %-18s %s\n", "NAME", "ROLE", "PRIVATE_IP", "PUBLIC_IP", "STATUS")
+			fprint(out, "%-24s %-16s %-14s %-18s %s\n", "NAME", "ROLE", "PRIVATE_IP", "PUBLIC_IP", "STATUS")
 			for _, n := range nodes {
-				_, _ = fmt.Fprintf(out, "%-24s %-16s %-14s %-18s %s\n", n.Name, n.Role, n.PrivateIP, n.PublicIP, n.Status)
+				fprint(out, "%-24s %-16s %-14s %-18s %s\n", n.Name, n.Role, n.PrivateIP, n.PublicIP, n.Status)
 			}
 			return nil
 		},
@@ -330,7 +347,7 @@ func getKubeconfigCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, _ = fmt.Fprint(cmd.OutOrStdout(), kc)
+			fprint(cmd.OutOrStdout(), "%s", kc)
 			return nil
 		},
 	}
@@ -374,8 +391,8 @@ func sshCmd() *cobra.Command {
 			nodeName := args[0]
 			region := "cn-beijing"
 			if clusterName != "" {
-				cfg, _ := cluster.LoadConfig(configPath)
-				if cfg != nil {
+				cfg, err := cluster.LoadConfig(configPath)
+				if err == nil && cfg != nil {
 					region = cfg.Spec.Region
 				}
 			} else {
@@ -431,8 +448,8 @@ func versionCmd() *cobra.Command {
 // resolveCluster returns the cluster name and region from --name flag or config file.
 func resolveCluster(name, configPath string) (string, string, error) {
 	if name != "" {
-		cfg, _ := cluster.LoadConfig(configPath)
-		if cfg != nil {
+		cfg, err := cluster.LoadConfig(configPath)
+		if err == nil && cfg != nil {
 			return name, cfg.Spec.Region, nil
 		}
 		return name, "cn-beijing", nil

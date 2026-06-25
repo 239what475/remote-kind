@@ -18,7 +18,10 @@ import (
 // Set testMode=true to run kubeadm init for verification instead of creating the image.
 func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, force, testMode bool) error {
 	// Check if image already exists (before creating any cloud resources)
-	existing, _ := client.FindImageByName(ImageName)
+	existing, err := client.FindImageByName(ImageName)
+	if err != nil {
+		klog.Warningf("find existing image: %v", err)
+	}
 	if existing != "" && !force && !testMode {
 		fmt.Printf("Image %s already exists (%s), skipping.\nUse --force to rebuild.\n", ImageName, existing)
 		return nil
@@ -73,7 +76,10 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 	if cfg.Spec.SSHKey != "" {
 		path := cfg.Spec.SSHKey
 		if strings.HasPrefix(path, "~/") {
-			home, _ := os.UserHomeDir()
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("home dir: %w", err)
+			}
 			path = home + path[1:]
 		}
 		if !filepath.IsLocal(path) {
@@ -117,7 +123,10 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 	if err := client.WaitForCloudAssistant(waitCtx, []string{ecsID}); err != nil {
 		return fmt.Errorf("wait ca: %w", err)
 	}
-	pubIP, _ := client.GetInstancePublicIP(ecsID)
+	pubIP, err := client.GetInstancePublicIP(ecsID)
+	if err != nil {
+		pubIP = "" // display only
+	}
 	fmt.Printf("ready (ssh root@%s)\n", pubIP)
 
 	// ── Install ──

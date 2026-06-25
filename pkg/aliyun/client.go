@@ -73,7 +73,10 @@ type aliyunCLIProfile struct {
 }
 
 func readAliyunCLIConfig() (ak, sk, region string) {
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", "", ""
+	}
 	configPath := filepath.Join(home, ".aliyun", "config.json")
 	if !filepath.IsLocal(configPath) {
 		return

@@ -110,11 +110,7 @@ func scaleUp(ctx context.Context, client *aliyun.Client, name string, count int,
 		return fmt.Errorf("wait ca: %w", err)
 	}
 	for _, wid := range ids {
-		func() {
-			ciCtx, cancel := context.WithTimeout(wCtx, 2*time.Minute)
-			defer cancel()
-			client.WaitForCloudInit(ciCtx, wid)
-		}()
+		client.WaitForCloudInitTimeout(wCtx, wid, 2*time.Minute)
 	}
 	klog.Infof("Workers ready")
 
@@ -207,6 +203,10 @@ func getCPID(nodes []NodeInfo) string {
 }
 
 func getCPIDFromCluster(ctx context.Context, client *aliyun.Client, name string) string {
-	nodes, _ := ListNodes(ctx, client, name)
+	nodes, err := ListNodes(ctx, client, name)
+	if err != nil {
+		klog.Warningf("list nodes: %v", err)
+		return ""
+	}
 	return getCPID(nodes)
 }

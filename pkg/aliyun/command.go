@@ -117,7 +117,10 @@ func (c *Client) pollResults(invokeID string) (map[string]string, error) {
 		switch status {
 		case "Success", "Finished":
 			out := safeStr(r.Output)
-			decoded, _ := base64.StdEncoding.DecodeString(out)
+			decoded, err := base64.StdEncoding.DecodeString(out)
+			if err != nil {
+				decoded = []byte(out)
+			}
 			if len(decoded) > 0 {
 				results[id] = string(decoded)
 			} else {

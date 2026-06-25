@@ -43,16 +43,28 @@ func DeleteByName(ctx context.Context, client *aliyun.Client, name string) error
 
 	// 2. Delete VPC + sub-resources
 	vpcName := fmt.Sprintf("remote-kind-%s", name)
-	vpcs, _ := client.ListVPCsByName(vpcName)
+	vpcs, err := client.ListVPCsByName(vpcName)
+	if err != nil {
+		klog.Warningf("list VPCs: %v", err)
+		return nil
+	}
 	for _, vpcID := range vpcs {
 		klog.Infof("Cleaning VPC %s...", vpcID)
-		sgs, _ := client.ListSGsByVPC(vpcID)
+		sgs, err := client.ListSGsByVPC(vpcID)
+		if err != nil {
+			klog.Warningf("list SGs: %v", err)
+			continue
+		}
 		for _, sgID := range sgs {
 			if err := client.DeleteSecurityGroup(sgID); err != nil {
 				klog.Warningf("delete SG %s: %v", sgID, err)
 			}
 		}
-		vsws, _ := client.ListVSwitchesByVPC(vpcID)
+		vsws, err := client.ListVSwitchesByVPC(vpcID)
+		if err != nil {
+			klog.Warningf("list vSwitches: %v", err)
+			continue
+		}
 		for _, vswID := range vsws {
 			if err := client.DeleteVSwitch(vswID); err != nil {
 				klog.Warningf("delete vSwitch %s: %v", vswID, err)

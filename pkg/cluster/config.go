@@ -85,7 +85,10 @@ func (c *ClusterConfig) ReadSSHKey() (string, error) {
 	}
 	path := c.Spec.SSHKey
 	if strings.HasPrefix(path, "~/") {
-		home, _ := os.UserHomeDir()
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("home dir: %w", err)
+		}
 		path = home + path[1:]
 	}
 	if !filepath.IsLocal(path) {
