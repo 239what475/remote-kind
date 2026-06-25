@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/what/remote-kind/pkg/aliyun"
-	"github.com/what/remote-kind/pkg/cluster"
+	"github.com/239what475/remote-kind/pkg/aliyun"
+	"github.com/239what475/remote-kind/pkg/cluster"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/v2"

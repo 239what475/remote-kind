@@ -1,4 +1,4 @@
-module github.com/what/remote-kind
+module github.com/239what475/remote-kind
 
 go 1.26.3
 
