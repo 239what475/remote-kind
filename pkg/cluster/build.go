@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -79,24 +78,9 @@ func BuildImage(ctx context.Context, client *aliyun.Client, cfg *ClusterConfig, 
 	fmt.Printf("%s %s %s\n", vpcID, vswID, sgID)
 
 	// ── SSH key ──
-	var sshKey string
-	if cfg.Spec.SSHKey != "" {
-		path := cfg.Spec.SSHKey
-		if strings.HasPrefix(path, "~/") {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return fmt.Errorf("home dir: %w", err)
-			}
-			path = home + path[1:]
-		}
-		if strings.Contains(path, "..") {
-			return fmt.Errorf("ssh key path must not contain ..: %s", path)
-		}
-		keyBytes, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("read SSH key %q: %w", cfg.Spec.SSHKey, err)
-		}
-		sshKey = strings.TrimSpace(string(keyBytes))
+	sshKey, err := cfg.ReadSSHKey()
+	if err != nil {
+		return err
 	}
 	ci, err := bootstrap.GenerateCloudInit(&bootstrap.CloudInitData{Hostname: "rk-build", SSHKey: sshKey})
 	if err != nil {
