@@ -339,14 +339,43 @@ func (c *Client) FindImageByName(name string) (string, error) {
 	return *resp.Body.Images.Image[0].ImageId, nil
 }
 
-// DeleteImage deletes a custom image and its associated snapshots.
+// DeleteImage deletes a custom image and its associated snapshot.
 func (c *Client) DeleteImage(imgID string) error {
+	// Find the snapshot linked to this specific image
+	snaps := c.imageSnapshotIDs(imgID)
+
 	req := new(ecs.DeleteImageRequest)
 	req.SetRegionId(c.Region)
 	req.SetImageId(imgID)
-	req.SetForce(true)
-	_, err := c.ECS.DeleteImage(req)
-	return err
+	if _, err := c.ECS.DeleteImage(req); err != nil {
+		return err
+	}
+
+	// Delete only this image's snapshot (safe after image is gone)
+	for _, sid := range snaps {
+		c.ECS.DeleteSnapshot(&ecs.DeleteSnapshotRequest{SnapshotId: &sid})
+	}
+	return nil
+}
+
+// imageSnapshotIDs returns the snapshot IDs backing a specific image.
+func (c *Client) imageSnapshotIDs(imageID string) []string {
+	req := new(ecs.DescribeImagesRequest)
+	req.SetRegionId(c.Region)
+	req.SetImageId(imageID)
+	resp, err := c.ECS.DescribeImages(req)
+	if err != nil {
+		return nil
+	}
+	var ids []string
+	for _, img := range resp.Body.Images.Image {
+		for _, d := range img.DiskDeviceMappings.DiskDeviceMapping {
+			if d.SnapshotId != nil && *d.SnapshotId != "" {
+				ids = append(ids, *d.SnapshotId)
+			}
+		}
+	}
+	return ids
 }
 
 // CreateImage creates a custom ECS image from a running or stopped instance.
