@@ -339,11 +339,12 @@ func (c *Client) FindImageByName(name string) (string, error) {
 	return *resp.Body.Images.Image[0].ImageId, nil
 }
 
-// DeleteImage deletes a custom image by ID.
+// DeleteImage deletes a custom image and its associated snapshots.
 func (c *Client) DeleteImage(imgID string) error {
 	req := new(ecs.DeleteImageRequest)
 	req.SetRegionId(c.Region)
 	req.SetImageId(imgID)
+	req.SetForce(true)
 	_, err := c.ECS.DeleteImage(req)
 	return err
 }
