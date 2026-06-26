@@ -20,7 +20,7 @@ jobs:
           LDFLAGS="$LDFLAGS -X github.com/239what475/remote-kind/pkg/cluster.GitCommit=$(git rev-parse --short HEAD)"
           LDFLAGS="$LDFLAGS -X github.com/239what475/remote-kind/pkg/cluster.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           go build -ldflags "$LDFLAGS" -o remote-kind ./cmd/remote-kind/
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: remote-kind
           generate_release_notes: true
