@@ -36,7 +36,7 @@ func fprintln(w io.Writer, args ...any) {
 
 var configPath string
 var clusterName string
-var retain, wait bool
+var wait bool
 var targetWorkers int
 
 func main() {
@@ -114,11 +114,6 @@ func createCmd() *cobra.Command {
 
 			state := &cluster.ClusterState{Name: cfg.Name, Config: cfg}
 			if err := state.Create(ctx, client); err != nil {
-				if !retain {
-					if err := cluster.DeleteByName(context.Background(), client, cfg.Name); err != nil {
-						klog.Warningf("rollback delete: %v", err)
-					}
-				}
 				return fmt.Errorf("create cluster: %w", err)
 			}
 
@@ -169,7 +164,6 @@ func createCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&configPath, "config", "remote-kind.yaml", "Path to config file")
-	cmd.Flags().BoolVar(&retain, "retain", false, "Keep instances on failure")
 	cmd.Flags().BoolVar(&wait, "wait", false, "Wait for all nodes to be Ready")
 	return cmd
 }
