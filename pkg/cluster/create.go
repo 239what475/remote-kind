@@ -69,6 +69,12 @@ func (c *ClusterState) Create(ctx context.Context, client *aliyun.Client) error 
 	for _, w := range cfg.Spec.Workers {
 		totalWorkers += w.Replicas
 	}
+	// Check for existing cluster with the same name
+	existing, _ := client.ListInstancesByTag(aliyun.TagCluster, cfg.Name)
+	if len(existing) > 0 {
+		return fmt.Errorf("cluster %q already exists — run 'remote-kind delete cluster --name %s' first", cfg.Name, cfg.Name)
+	}
+
 	klog.Infof("Creating cluster %q in %s/%s with %d workers", cfg.Name, cfg.Spec.Region, cfg.Spec.Zone, totalWorkers)
 
 	var res createdResources
